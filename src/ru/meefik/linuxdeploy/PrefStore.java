@@ -17,8 +17,7 @@ import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import com.h6ah4i.android.compat.content.SharedPreferenceCompat;
-
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -28,6 +27,8 @@ import android.os.Build;
 import android.os.Environment;
 import android.view.Display;
 import android.view.WindowManager;
+
+import com.h6ah4i.android.compat.content.SharedPreferenceCompat;
 
 public class PrefStore {
 
@@ -84,15 +85,18 @@ public class PrefStore {
 
 	// miscellaneous
 	public static String CURRENT_PROFILE;
+	public static String EXTERNAL_STORAGE;
 	public static Boolean PREF_CHANGE = false;
+	public static String MARCH = "unknown";
 	public static String VERSION = "unknown";
-	public static final String ROOT_ASSETS = "home";
+	public static String SHELL = "/system/xbin/ash";
+	public static final String ROOT_ASSETS = "root";
 	public static final String APP_PREF_FILE_NAME = "app_settings";
 	public static final String PROFILES_FILE_NAME = "profiles";
 
 	// get preferences
 	public static void get(Context c) {
-		File extStore = Environment.getExternalStorageDirectory();
+		EXTERNAL_STORAGE = Environment.getExternalStorageDirectory().getAbsolutePath();
 
 		SharedPreferences sp = c.getSharedPreferences(APP_PREF_FILE_NAME,
 				Context.MODE_PRIVATE);
@@ -116,6 +120,9 @@ public class PrefStore {
 		prefEditor.putString("installdir", ENV_DIR);
 		
 		BUILTIN_SHELL = sp.getBoolean("builtinshell", c.getString(R.string.builtinshell).equals("true") ? true : false);
+		if (BUILTIN_SHELL) {
+			SHELL = ENV_DIR + "/bin/sh";
+		}
 		SYMLINK = sp.getBoolean("symlink", c.getString(R.string.symlink)
 				.equals("true") ? true : false);
 		CURRENT_PROFILE = sp.getString("profile", null);
@@ -132,16 +139,14 @@ public class PrefStore {
 								: false) ? "y" : "n";
 		LOGGING = sp.getBoolean("logs",
 				c.getString(R.string.logs).equals("true") ? true : false);
-		LOG_FILE = sp.getString("logfile", extStore.getAbsolutePath()
-				+ "/linuxdeploy.log");
+		LOG_FILE = sp.getString("logfile", EXTERNAL_STORAGE + "/linuxdeploy.log");
 		
 		prefEditor.commit();
 
 		sp = c.getSharedPreferences(CURRENT_PROFILE, Context.MODE_PRIVATE);
 		prefEditor = sp.edit();
 
-		IMG_TARGET = sp.getString("diskimage", extStore.getAbsolutePath()
-				+ "/linux.img");
+		IMG_TARGET = sp.getString("diskimage", EXTERNAL_STORAGE + "/linux.img");
 		DEPLOY_TYPE = sp.getString("deploytype",
 				c.getString(R.string.deploytype));
 		IMG_SIZE = sp.getString("disksize", c.getString(R.string.disksize));
@@ -188,7 +193,7 @@ public class PrefStore {
 		CUSTOM_MOUNTS = sp
 				.getBoolean("custommounts", c.getString(R.string.custommount)
 						.equals("true") ? true : false) ? sp.getString(
-				"mounts", extStore.getAbsolutePath()).trim() : "";
+				"mounts", EXTERNAL_STORAGE).trim() : "";
 		SSH_PORT = sp.getString("sshport", c.getString(R.string.sshport));
 		VNC_DISPLAY = sp.getString("vncdisplay",
 				c.getString(R.string.vncdisplay));
@@ -208,6 +213,8 @@ public class PrefStore {
 		FB_FREEZE = sp.getString("fbfreeze", c.getString(R.string.fbfreeze));
 		
 		prefEditor.commit();
+		
+		MARCH = getArch(System.getProperty("os.arch"));
 
 		try {
 			VERSION = c.getPackageManager().getPackageInfo(c.getPackageName(),
@@ -219,7 +226,22 @@ public class PrefStore {
 			e.printStackTrace();
 		}
 	}
+	
+	public static String getArch(String arch) {
+		String march = "";
+		if (arch.length() > 0) {
+			char a = arch.toLowerCase().charAt(0);
+			switch (a) {
+			case 'a': march = "arm"; break;
+			case 'm': march = "mips"; break;
+			case 'i': 
+			case 'x': march = "intel"; break;
+			}
+		}
+	    return march;
+	}
 
+	@SuppressLint("NewApi")
 	public static int getWidth(Context mContext) {
 		int width = 0;
 		WindowManager wm = (WindowManager) mContext
@@ -235,6 +257,7 @@ public class PrefStore {
 		return width;
 	}
 
+	@SuppressLint("NewApi")
 	public static int getHeight(Context mContext) {
 		int height = 0;
 		WindowManager wm = (WindowManager) mContext
@@ -408,8 +431,7 @@ public class PrefStore {
 	public static List<String> getMountsList(Context c) {
 		SharedPreferences sp = c.getSharedPreferences(CURRENT_PROFILE,
 				Context.MODE_PRIVATE);
-		File extStore = Environment.getExternalStorageDirectory();
-		String str = sp.getString("mounts", extStore.getAbsolutePath());
+		String str = sp.getString("mounts", EXTERNAL_STORAGE);
 		List<String> list = new ArrayList<String>();
 		for (String i : str.split(" ")) {
 			list.add(i);
@@ -479,6 +501,14 @@ public class PrefStore {
 		if (THEME
 				.equals(c.getResources().getStringArray(R.array.theme_values)[1]))
 			c.setTheme(R.style.LightTheme);
+	}
+	
+	public static int getResourceId(Context c, String variableName, String resourceName) {
+	    try {
+	        return c.getResources().getIdentifier(variableName, resourceName, c.getPackageName());
+	    } catch (Exception e) {
+	        return -1;
+	    } 
 	}
 
 }

@@ -26,22 +26,27 @@ public class ShellEnv {
 		this.rooted = isRooted();
 	}
 
-	private boolean execCmd(List<String> params) {
+	private boolean exec(List<String> params) {
 		boolean result = true;
 		try {
-			Process process = Runtime.getRuntime().exec(params.get(0));
-			params.remove(0);
+			Process process = Runtime.getRuntime().exec("su");
 
-			OutputStream stdin = process.getOutputStream();
+			final OutputStream stdin = process.getOutputStream();
+			final InputStream stdout = process.getInputStream();
+			final InputStream stderr = process.getErrorStream();
+
+			params.add("exit $?");
+			params.add(0, "PATH=" + PrefStore.ENV_DIR
+					+ "/bin:$PATH; export PATH");
+			if (PrefStore.TRACE_MODE.equals("y"))
+				params.add(0, "set -x");
+
 			DataOutputStream os = new DataOutputStream(stdin);
-			for (String tmpCmd : params) {
-				os.writeBytes(tmpCmd + "\n");
+			for (String cmd : params) {
+				os.writeBytes(cmd + "\n");
 			}
 			os.flush();
 			os.close();
-
-			final InputStream stdout = process.getInputStream();
-			final InputStream stderr = process.getErrorStream();
 
 			(new Thread() {
 				@Override
@@ -60,6 +65,7 @@ public class ShellEnv {
 			}
 
 			process.waitFor();
+
 			if (process.exitValue() != 0)
 				result = false;
 
@@ -110,9 +116,8 @@ public class ShellEnv {
 	private boolean isRooted() {
 		// exec linuxdeploy command
 		List<String> params = new ArrayList<String>();
-		params.add("su");
 		params.add("ls /data/local 1>/dev/null");
-		if (!execCmd(params)) {
+		if (!exec(params)) {
 			sendLogs("Require superuser privileges (root)!\n");
 			return false;
 		} else {
@@ -120,18 +125,15 @@ public class ShellEnv {
 		}
 	}
 
-	private boolean copyFile(String homeDir, String filename) {
+	private boolean extractFile(String rootAsset, String path) {
 		boolean result = true;
 		AssetManager assetManager = c.getAssets();
 		InputStream in = null;
 		OutputStream out = null;
 		try {
-			in = assetManager.open(filename);
-			String newFileName = homeDir
-					+ filename.replaceFirst(PrefStore.ROOT_ASSETS, "");
-			// Log.d("linuxdeploy", "extract: "+filename+" to "+newFileName);
-			out = new FileOutputStream(newFileName);
-
+			in = assetManager.open(rootAsset + path);
+			String fullPath = PrefStore.ENV_DIR + path;
+			out = new FileOutputStream(fullPath);
 			byte[] buffer = new byte[1024];
 			int read;
 			while ((read = in.read(buffer)) != -1) {
@@ -164,27 +166,23 @@ public class ShellEnv {
 		return result;
 	}
 
-	private boolean copyFileOrDir(String homeDir, String path) {
+	private boolean extractDir(String rootAsset, String path) {
 		AssetManager assetManager = c.getAssets();
 		String assets[] = null;
 		try {
-			assets = assetManager.list(path);
+			assets = assetManager.list(rootAsset + path);
 			if (assets.length == 0) {
-				if (!copyFile(homeDir, path))
+				if (!extractFile(rootAsset, path))
 					return false;
 			} else {
-				String fullPath = homeDir
-						+ path.replaceFirst(PrefStore.ROOT_ASSETS, "");
-				// String fullPath =
-				// getFilesDir().getAbsolutePath()+File.separator+path;
+				String fullPath = PrefStore.ENV_DIR + path;
 				File dir = new File(fullPath);
 				if (!dir.exists()) {
 					dir.mkdir();
-					// Log.d("linuxdeploy", "mkdir: "+fullPath);
 				}
 
 				for (int i = 0; i < assets.length; ++i) {
-					if (!copyFileOrDir(homeDir, path + "/" + assets[i]))
+					if (!extractDir(rootAsset, path + "/" + assets[i]))
 						return false;
 				}
 			}
@@ -207,9 +205,6 @@ public class ShellEnv {
 		}
 
 		List<String> params = new ArrayList<String>();
-		params.add("su");
-		if (PrefStore.TRACE_MODE.equals("y"))
-			params.add("set -x");
 		if (!PrefStore.DEBUG_MODE.equals("y")) {
 			params.add("exec 1>/dev/null");
 			params.add("exec 2>/dev/null");
@@ -219,42 +214,42 @@ public class ShellEnv {
 		params.add("rm -R " + PrefStore.ENV_DIR + "/etc");
 		params.add("rm -R " + PrefStore.ENV_DIR + "/deploy");
 		params.add("chmod 777 " + PrefStore.ENV_DIR);
-		params.add("exit");
-		if (!execCmd(params)) {
+		if (!exec(params)) {
 			sendLogs("fail\n");
 			return;
 		}
 
-		boolean copyResult = copyFileOrDir(PrefStore.ENV_DIR,
-				PrefStore.ROOT_ASSETS);
-		if (!copyResult) {
+		if (!extractDir(PrefStore.ROOT_ASSETS, "")) {
 			sendLogs("fail\n");
 			return;
+		}
+		if (!extractDir(PrefStore.MARCH + "/all", "")) {
+			sendLogs("fail\n");
+			return;
+		}
+		// PIE for Android L
+		if (android.os.Build.VERSION.SDK_INT >= 21) {
+			if (!extractDir(PrefStore.MARCH + "/pie", "")) {
+				sendLogs("fail\n");
+				return;
+			}
+		} else {
+			if (!extractDir(PrefStore.MARCH + "/nopie", "")) {
+				sendLogs("fail\n");
+				return;
+			}
 		}
 
 		params.clear();
-		params.add("su");
-		if (PrefStore.TRACE_MODE.equals("y"))
-			params.add("set -x");
 		if (!PrefStore.DEBUG_MODE.equals("y")) {
 			params.add("exec 1>/dev/null");
 			params.add("exec 2>/dev/null");
 		}
-		params.add("chmod 755 " + PrefStore.ENV_DIR);
-		params.add("chmod 755 " + PrefStore.ENV_DIR + "/bin");
-		params.add("chmod 755 " + PrefStore.ENV_DIR + "/bin/busybox");
-		params.add(PrefStore.ENV_DIR + "/bin/busybox --install -s "
-				+ PrefStore.ENV_DIR + "/bin");
-		if (PrefStore.BUILTIN_SHELL == false) {
-			params.add("rm " + PrefStore.ENV_DIR + "/bin/sh");
-			params.add("ln -s /system/bin/sh " + PrefStore.ENV_DIR + "/bin/sh"); 
+		if (PrefStore.BUILTIN_SHELL) {
+			params.add("chmod 755 " + PrefStore.ENV_DIR + "/bin/busybox");
+			params.add(PrefStore.ENV_DIR + "/bin/busybox --install -s "
+					+ PrefStore.ENV_DIR + "/bin");
 		}
-		params.add("PATH=" + PrefStore.ENV_DIR + "/bin:$PATH; export PATH");
-		params.add("chmod -R 755 " + PrefStore.ENV_DIR + "/bin");
-		params.add("chmod -R a+rX " + PrefStore.ENV_DIR + "/etc "
-				+ PrefStore.ENV_DIR + "/deploy");
-		params.add("chmod 755 " + PrefStore.ENV_DIR
-				+ "/deploy/debootstrap/pkgdetails");
 		if (PrefStore.SYMLINK) {
 			params.add("rm -f /system/bin/linuxdeploy");
 			params.add("ln -s "
@@ -266,9 +261,15 @@ public class ShellEnv {
 		}
 		params.add("echo '" + PrefStore.VERSION + "' > " + PrefStore.ENV_DIR
 				+ "/etc/version");
-		params.add("chmod 644 " + PrefStore.ENV_DIR + "/etc/version");
-		params.add("exit");
-		if (!execCmd(params)) {
+		params.add("chmod 755 " + PrefStore.ENV_DIR);
+		String[] dirs = { PrefStore.ENV_DIR + "/bin",
+				PrefStore.ENV_DIR + "/etc", PrefStore.ENV_DIR + "/deploy" };
+		for (int i = 0; i < dirs.length; i++) {
+			params.add("chmod -R 755 " + dirs[i]);
+			params.add("find " + dirs[i]
+					+ " | while read f; do chmod 755 $f; done");
+		}
+		if (!exec(params)) {
 			sendLogs("fail\n");
 			return;
 		}
@@ -286,19 +287,17 @@ public class ShellEnv {
 		sendLogs("Updating configuration file ... ");
 
 		List<String> params = new ArrayList<String>();
-		params.add("su");
-		if (PrefStore.TRACE_MODE.equals("y"))
-			params.add("set -x");
 		if (!PrefStore.DEBUG_MODE.equals("y")) {
 			params.add("exec 1>/dev/null");
 			params.add("exec 2>/dev/null");
 		}
-		params.add("PATH=" + PrefStore.ENV_DIR + "/bin:$PATH; export PATH");
 		params.add("cd " + PrefStore.ENV_DIR);
 		params.add("sed -i 's|^ENV_DIR=.*|ENV_DIR=\"" + PrefStore.ENV_DIR
 				+ "\"|g' " + PrefStore.ENV_DIR + "/bin/linuxdeploy");
-		params.add("sed -i 's|^#!.*|#!" + PrefStore.ENV_DIR + "/bin/sh|g' "
+		params.add("sed -i 's|^#!.*|#!" + PrefStore.SHELL + "|g' "
 				+ PrefStore.ENV_DIR + "/bin/linuxdeploy");
+		params.add("sed -i 's|^#!.*|#!" + PrefStore.SHELL + " -e|g' "
+				+ PrefStore.ENV_DIR + "/bin/debootstrap");
 		params.add("sed -i 's|^DEBUG_MODE=.*|DEBUG_MODE=\""
 				+ PrefStore.DEBUG_MODE + "\"|g' " + PrefStore.ENV_DIR
 				+ "/etc/deploy.conf");
@@ -356,9 +355,8 @@ public class ShellEnv {
 		params.add("sed -i 's|^VNC_GEOMETRY=.*|VNC_GEOMETRY=\""
 				+ PrefStore.VNC_GEOMETRY + "\"|g' " + PrefStore.ENV_DIR
 				+ "/etc/deploy.conf");
-		params.add("sed -i 's|^VNC_ARGS=.*|VNC_ARGS=\""
-				+ PrefStore.VNC_ARGS + "\"|g' " + PrefStore.ENV_DIR
-				+ "/etc/deploy.conf");
+		params.add("sed -i 's|^VNC_ARGS=.*|VNC_ARGS=\"" + PrefStore.VNC_ARGS
+				+ "\"|g' " + PrefStore.ENV_DIR + "/etc/deploy.conf");
 		params.add("sed -i 's|^XSERVER_DISPLAY=.*|XSERVER_DISPLAY=\""
 				+ PrefStore.XSERVER_DISPLAY + "\"|g' " + PrefStore.ENV_DIR
 				+ "/etc/deploy.conf");
@@ -378,16 +376,15 @@ public class ShellEnv {
 				+ "\"|g' " + PrefStore.ENV_DIR + "/etc/deploy.conf");
 		params.add("sed -i 's|^FB_FREEZE=.*|FB_FREEZE=\"" + PrefStore.FB_FREEZE
 				+ "\"|g' " + PrefStore.ENV_DIR + "/etc/deploy.conf");
-		params.add("[ $? -eq 0 ] && exit 0 || exit 1");
 
-		if (!execCmd(params)) {
+		if (!exec(params)) {
 			sendLogs("fail\n");
 			return;
 		}
 		sendLogs("done\n");
 	}
 
-	public void deployCmd(String cmd) {
+	public void execScript(String arg) {
 		if (!rooted)
 			return;
 
@@ -416,12 +413,8 @@ public class ShellEnv {
 		}
 		// exec linuxdeploy command
 		List<String> params = new ArrayList<String>();
-		params.add("su");
-		if (PrefStore.TRACE_MODE.equals("y"))
-			params.add("set -x");
-		params.add(PrefStore.ENV_DIR + "/bin/linuxdeploy " + cmd);
-		params.add("exit");
-		execCmd(params);
+		params.add(PrefStore.ENV_DIR + "/bin/linuxdeploy " + arg);
+		exec(params);
 	}
 
 }

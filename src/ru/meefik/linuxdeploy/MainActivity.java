@@ -148,6 +148,8 @@ public class MainActivity extends SherlockActivity {
 					isLight ? R.drawable.ic_action_stop_light
 							: R.drawable.ic_action_stop_dark);
 		}
+		
+		super.onCreateOptionsMenu(menu);
 
 		return true;
 	}
@@ -171,7 +173,7 @@ public class MainActivity extends SherlockActivity {
 										public void run() {
 											new ShellEnv(
 													getApplicationContext())
-													.deployCmd("start");
+													.execScript("start");
 										}
 									}).start();
 									if (PrefStore.STARTUP
@@ -208,7 +210,7 @@ public class MainActivity extends SherlockActivity {
 										public void run() {
 											new ShellEnv(
 													getApplicationContext())
-													.deployCmd("stop");
+													.execScript("stop");
 										}
 									}).start();
 								}
@@ -226,7 +228,7 @@ public class MainActivity extends SherlockActivity {
 			(new Thread() {
 				@Override
 				public void run() {
-					new ShellEnv(getApplicationContext()).deployCmd("status");
+					new ShellEnv(getApplicationContext()).execScript("status");
 				}
 			}).start();
 			break;
@@ -256,6 +258,8 @@ public class MainActivity extends SherlockActivity {
 			Intent intent_profiles = new Intent(this, ProfilesActivity.class);
 			startActivity(intent_profiles);
 			break;
+		default:
+		    return super.onOptionsItemSelected(item);
 		}
 		return false;
 	}

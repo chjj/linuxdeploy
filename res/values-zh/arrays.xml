@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="theme_entries">
+        <item>暗色</item>
+        <item>亮色</item>
+    </string-array>
+    <string-array name="deploytype_entries">
+        <item>文件</item>
+        <item>分区</item>
+        <item>RAM</item>
+        <item>自定义</item>
+    </string-array>
+    <string-array name="fstype_entries">
+        <item>自动</item>
+        <item>ext2</item>
+        <item>ext3</item>
+        <item>ext4</item>
+    </string-array>
+    <string-array name="desktopenv_entries">
+        <item>XTerm</item>
+        <item>LXDE</item>
+        <item>Xfce</item>
+        <item>GNOME</item>
+        <item>KDE</item>
+        <item>其它</item>
+    </string-array>
+    <string-array name="fbfreeze_entries">
+        <item>不冻结</item>
+        <item>暂停</item>
+        <item>停止</item>
+    </string-array>
+    
+
+    <!-- Debian -->
+
+    <string-array name="debian_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+
+    <!-- Ubuntu -->
+
+    <string-array name="ubuntu_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+    
+    <!-- Kali Linux -->
+
+    <string-array name="kali_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+        <item>Kali 附加内容</item>
+    </string-array>
+    
+    <!-- Fedora -->
+
+    <string-array name="fedora_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+    
+    <!-- Arch Linux -->
+
+    <string-array name="archlinux_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+
+    <!-- openSUSE -->
+
+    <string-array name="opensuse_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+    
+    <!-- Gentoo -->
+
+    <string-array name="gentoo_components_entries">
+        <item>桌面环境</item>
+        <item>SSH 服务器</item>
+        <item>VNC 服务器</item>
+        <item>X11 服务器</item>
+    </string-array>
+
+</resources>

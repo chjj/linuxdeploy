@@ -1,9 +1,51 @@
 Changelog (English)
 ===================
 
+1.5.1
+Added support for installation type in RAM
+Updated command "status"
+Updated security groups
+Added fix for tty0 (use X options: "-sharevts vt0")
+Added handling for shutdown event
+Added support Ubuntu 15.10 (Wily Werewolf)
+Added support Fedora 22 (armhfp only)
+Added more locales
+Translated into German, Italian, Spanish and Chinese
+
+1.5.0
+Added support for devices with an Intel architecture
+Added support for cross-architecture installation x86 <-> ARM based on QEMU (binfmt_misc require support in the kernel)
+Updated built-in BusyBox to version 1.23.0 (builds with PIE and without PIE)
+Added support Ubuntu 15.04 (Vivid Vervet)
+Added suits kali-dev and kali-rolling in Kali Linux
+Bugfix "Couldn't find these debs: 0"
+Fixed Gentoo installation problems
+Updated linuxdeploy shell
+
+1.4.9
+Added support for third-party BusyBox (required /system/xbin/ash)
+Added support Ubuntu 14.10 (Utopic Unicorn)
+Added support arm64/aarch64 for some distributions
+
+1.4.8
+Added support Android 5 (PIE support)
+Added support Fedora 21 (armhfp only)
+Fixed LD_PRELOAD errors
+
+1.4.7
+Fixed packages list of Arch Linux (issue #161)
+Fixed error with VNC_ARGS (issue #153)
+User root is added to the group aid_inet be default (ticket #135)
+Takes into account changes in openSUSE repository (ticket #154)
+Save and restore SELinux state (ticket #167)
+
 1.4.6
 Added option to disable the built-in shell
 Operating environment by default: /data/data/ru.meefik.linuxdeploy/linux
+Added sync in framebuffer
+Added ACCESS_SUPERUSER permission
+Fixed packages list of Arch Linux (issue #136)
+Fixed packages list of openSUSE
 
 1.4.5
 Added support SELinux
@@ -247,9 +289,51 @@ Updated list packages of base system installation
 История изменений (Русский)
 ===========================
 
+1.5.1
+Добавлена поддержка установки дистрибутивов в оперативную память
+Обновлена команда "состояние"
+Обновлены группы безопасности
+Добавлено исправление для tty0 (используйте опции X-сервера: "-sharevts vt0")
+Добавлена обработка события отключения питания устройства
+Добавлена поддержка Ubuntu 15.10 (Wily Werewolf)
+Добавлена поддержка Fedora 22 (только armhfp)
+Добавлено больше локализаций
+Переведено на немецкий, итальянский, испанский и китайский языки
+
+1.5.0
+Добавлена поддержка устройств с Intel архитектурой
+Добавлена поддержка кросс-архитектурной инсталляции x86 <-> ARM на основе QEMU (требуется поддержка binfmt_misc на уровне ядра)
+Обновлен встроенный BusyBox до версии 1.23.0 (сборки с PIE и без PIE)
+Добавлена версия Ubuntu 15.04 (Vivid Vervet)
+Добавлены ветки kali-dev и kali-rolling в Kali Linux
+Исправлена ошибка "Couldn't find these debs: 0"
+Истранены проблемы с установкой Gentoo
+Обновлен linuxdeploy shell
+
+1.4.9
+Добавлена поддержка сторонних сборок BusyBox (требуется /system/xbin/ash)
+Добавлена поддержка Ubuntu 14.10 (Utopic Unicorn)
+Добавлена поддержка arm64/aarch64 для некоторых дистрибутивов
+
+1.4.8
+Добавлена поддержка Android 5 (поддержка PIE)
+Добавлена поддержка Fedora 21 (только armhfp)
+Исправление ошибок LD_PRELOAD
+
+1.4.7
+Исправлен список пакетов в Arch Linux (тикет #161)
+Исправлена ошибка, связанная с VNC_ARGS (тикет #153)
+Пользователь root добавлен в группу aid_inet по умолчанию (тикет #135)
+Учтены изменения в репозитории openSUSE (тикет #154)
+Сохранение и восстановление состояния SELinux (тикет #167)
+
 1.4.6
 Добавлена опция для отключения встроенного командного интерпретатора
 Путь рабочего окружения по умолчанию: /data/data/ru.meefik.linuxdeploy/linux
+Добавлена команда sync перед переходом в режим фрем-буфера
+Добавлено разрешение ACCESS_SUPERUSER
+Исправлен список пакетов в Arch Linux (тикет #136)
+Исправлен список пакетов в openSUSE
 
 1.4.5
 Добавлена поддержка SELinux
